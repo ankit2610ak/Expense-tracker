@@ -156,3 +156,4 @@ describe('Integration: Netlify Function Transactions & Categories Handler', () =
     expect(listData.transactions.length).toBe(0);
   });
 });
+

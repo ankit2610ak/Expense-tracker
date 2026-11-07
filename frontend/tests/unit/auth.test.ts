@@ -57,3 +57,4 @@ describe('Unit: Netlify Functions Auth Utility', () => {
     expect(data.error).toBe('Access denied');
   });
 });
+

@@ -96,3 +96,4 @@ describe('Integration: Netlify Function Dashboard Analytics Handler', () => {
     expect(data.timeSeries.length).toBe(12);
   });
 });
+
