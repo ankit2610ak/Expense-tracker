@@ -1,18 +1,17 @@
 # Netlify Configuration for Expense Tracker
 [build]
-  base = "frontend"
-  publish = "dist"
-  command = "npm run build"
+  command = "cd frontend && npm run build"
+  publish = "frontend/dist"
 
 [build.environment]
   NODE_VERSION = "20"
 
 [functions]
-  directory = "netlify/functions"
+  directory = "frontend/netlify/functions"
   node_bundler = "esbuild"
 
 # SPA fallback for client-side routing
-# Functions with config.path (/api/*) and static assets are matched before this fallback.
+# Custom function routes with config.path (/api/*) and static assets are matched before this fallback.
 [[redirects]]
   from = "/*"
   to = "/index.html"
