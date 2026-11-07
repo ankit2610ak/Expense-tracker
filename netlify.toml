@@ -1,19 +1,19 @@
-# Netlify Configuration for Expense Tracker Frontend
+# Netlify Configuration for Expense Tracker
 [build]
   base = "frontend"
   publish = "dist"
   command = "npm run build"
 
-# SPA Fallback for client-side routing
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# SPA fallback for client-side routing
+# Functions with config.path (/api/*) and static assets are matched before this fallback.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Optional: Proxy API requests if your backend server is deployed on Railway, Render, or Fly.io
-# [[redirects]]
-#   from = "/api/*"
-#   to = "https://your-backend-service.com/api/:splat"
-#   status = 200
-#   force = true
-
