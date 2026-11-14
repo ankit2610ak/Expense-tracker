@@ -66,17 +66,15 @@ export default async function handler(req: Request): Promise<Response> {
         return Response.json({ error: 'User with this email already exists' }, { status: 409 });
       }
 
+      const initialBal = Number(initial_opening_balance) || 0;
+      const curr = String(currency || 'INR').trim().toUpperCase();
       const password_hash = await bcryptHash(String(password), 10);
+
+      // Create user with initial balance and currency directly stored
       const user = await createUser({
         email: normalizedEmail,
         password_hash,
-        name: String(name).trim()
-      });
-
-      const initialBal = Number(initial_opening_balance) || 0;
-      const curr = String(currency || 'INR').trim().toUpperCase();
-
-      await upsertSettings(user.id, {
+        name: String(name).trim(),
         initial_opening_balance: initialBal,
         currency: curr,
       });
@@ -124,6 +122,9 @@ export default async function handler(req: Request): Promise<Response> {
       const token = generateToken({ userId: user.id, email: user.email });
       const settings = await getSettings(user.id);
 
+      const initialBal = settings.initial_opening_balance ?? user.initial_opening_balance ?? 0;
+      const curr = settings.currency || user.currency || 'INR';
+
       return Response.json({
         token,
         user: {
@@ -131,8 +132,8 @@ export default async function handler(req: Request): Promise<Response> {
           email: user.email,
           name: user.name,
           created_at: user.created_at,
-          initial_opening_balance: settings.initial_opening_balance,
-          currency: settings.currency,
+          initial_opening_balance: initialBal,
+          currency: curr,
         },
       });
     }
@@ -146,14 +147,17 @@ export default async function handler(req: Request): Promise<Response> {
       if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
       const settings = await getSettings(userId);
+      const initialBal = settings.initial_opening_balance ?? user.initial_opening_balance ?? 0;
+      const curr = settings.currency || user.currency || 'INR';
+
       return Response.json({
         user: {
           id: user.id,
           email: user.email,
           name: user.name,
           created_at: user.created_at,
-          initial_opening_balance: settings.initial_opening_balance,
-          currency: settings.currency,
+          initial_opening_balance: initialBal,
+          currency: curr,
         },
       });
     }

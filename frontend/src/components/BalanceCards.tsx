@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownRight, Wallet, Scale } from 'lucide-react';
 interface BalanceCardsProps {
   summary: BalanceSummary | null;
   currency: string;
+  defaultOpeningBalance?: number;
 }
 
 export function getCurrencySymbol(currency: string = 'INR'): string {
@@ -45,11 +46,11 @@ export function formatCurrency(amount: number, currency: string = 'INR'): string
   }
 }
 
-export const BalanceCards: React.FC<BalanceCardsProps> = ({ summary, currency }) => {
-  const opening = summary?.opening_balance ?? 0;
+export const BalanceCards: React.FC<BalanceCardsProps> = ({ summary, currency, defaultOpeningBalance = 0 }) => {
+  const opening = summary?.opening_balance ?? defaultOpeningBalance;
   const credits = summary?.total_credits ?? 0;
   const expenses = summary?.total_expenses ?? 0;
-  const closing = summary?.closing_balance ?? 0;
+  const closing = summary?.closing_balance ?? (defaultOpeningBalance + credits - expenses);
   const periodLabel =
     summary?.period === 'week'
       ? 'This Week'

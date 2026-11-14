@@ -1,7 +1,7 @@
 /**
  * Resilient Data layer for Netlify Functions.
- * Uses @netlify/blobs when available, with automatic in-memory fallback
- * when running locally, in unit tests, or if Netlify Blobs is unconfigured.
+ * Uses @netlify/blobs with strong consistency when available, with automatic
+ * in-memory fallback when running locally, in unit tests, or if Netlify Blobs is unconfigured.
  */
 
 import { getStore } from '@netlify/blobs';
@@ -16,6 +16,8 @@ export interface UserRecord {
   password_hash: string;
   name: string;
   created_at: string;
+  initial_opening_balance: number;
+  currency: string;
 }
 
 export interface SettingsRecord {
@@ -92,7 +94,8 @@ export function resetAllStores(): void {
 
 function getSafeStore(name: string): KVStore {
   try {
-    const blobStore = getStore(name);
+    // Request strong consistency to prevent read-after-write edge replication delays
+    const blobStore = getStore({ name, consistency: 'strong' });
     const memory = getFallbackMemoryStore(name);
 
     return {
@@ -158,17 +161,35 @@ export async function createUser(data: {
   email: string;
   password_hash: string;
   name: string;
+  initial_opening_balance?: number;
+  currency?: string;
 }): Promise<UserRecord> {
   const userId = randomUUID();
+  const initial_opening_balance = data.initial_opening_balance !== undefined ? Number(data.initial_opening_balance) : 0;
+  const currency = (data.currency || 'INR').trim().toUpperCase();
+
   const user: UserRecord = {
     id: userId,
     email: data.email.toLowerCase(),
     password_hash: data.password_hash,
     name: data.name.trim(),
     created_at: new Date().toISOString(),
+    initial_opening_balance,
+    currency,
   };
+
+  // Save to users store
   await usersStore().set(userId, JSON.stringify(user));
+  // Save email lookup
   await emailsStore().set(user.email, userId);
+  // Also save settings directly
+  await settingsStore().set(userId, JSON.stringify({
+    user_id: userId,
+    initial_opening_balance,
+    currency,
+    updated_at: new Date().toISOString(),
+  }));
+
   return user;
 }
 
@@ -177,12 +198,26 @@ export async function createUser(data: {
 export async function getSettings(userId: string): Promise<SettingsRecord> {
   const store = settingsStore();
   const raw = await store.get(userId, { type: 'json' });
-  if (raw) return raw as SettingsRecord;
+  if (raw && (raw as SettingsRecord).initial_opening_balance !== undefined) {
+    return raw as SettingsRecord;
+  }
+
+  // Fallback to user record
+  const user = await getUserById(userId);
+  if (user && user.initial_opening_balance !== undefined) {
+    return {
+      user_id: userId,
+      initial_opening_balance: user.initial_opening_balance,
+      currency: user.currency || 'INR',
+      updated_at: user.created_at || new Date().toISOString(),
+    };
+  }
+
   return {
     user_id: userId,
     initial_opening_balance: 0,
     currency: 'INR',
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -194,7 +229,17 @@ export async function upsertSettings(userId: string, data: { initial_opening_bal
     currency: data.currency ? String(data.currency).trim().toUpperCase() : current.currency,
     updated_at: new Date().toISOString(),
   };
+
   await settingsStore().set(userId, JSON.stringify(updated));
+
+  // Sync with user record so user profile remains consistent
+  const user = await getUserById(userId);
+  if (user) {
+    user.initial_opening_balance = updated.initial_opening_balance;
+    user.currency = updated.currency;
+    await usersStore().set(userId, JSON.stringify(user));
+  }
+
   return updated;
 }
 

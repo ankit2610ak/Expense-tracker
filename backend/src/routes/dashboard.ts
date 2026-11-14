@@ -81,7 +81,7 @@ router.get('/summary', (req: AuthenticatedRequest, res: Response) => {
     WHERE user_id = ?
   `).get(userId) as { initial_opening_balance: number; currency: string } | undefined;
 
-  const initialBaseline = settings?.initial_opening_balance || 0;
+  const initialBaseline = settings?.initial_opening_balance ?? 0;
   const currency = settings?.currency || 'INR';
 
   const { startDate, endDate } = getPeriodDates(period, refDate);

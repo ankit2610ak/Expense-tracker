@@ -135,13 +135,17 @@ export const App: React.FC = () => {
         </div>
 
         {/* 1. Opening & Closing Balance Metric Cards */}
-        <BalanceCards summary={dashboardData?.summary || null} currency={user.currency || 'USD'} />
+        <BalanceCards
+          summary={dashboardData?.summary || null}
+          currency={user.currency || 'INR'}
+          defaultOpeningBalance={user.initial_opening_balance ?? 0}
+        />
 
         {/* 2. Charts & Analytics Overview */}
         <DashboardCharts
           timeSeries={dashboardData?.timeSeries || []}
           categoryBreakdown={dashboardData?.categoryBreakdown || []}
-          currency={user.currency || 'USD'}
+          currency={user.currency || 'INR'}
           period={period}
         />
 
@@ -151,7 +155,7 @@ export const App: React.FC = () => {
           <div className="lg:col-span-1 sticky top-24">
             <TransactionForm
               categories={categories}
-              currency={user.currency || 'USD'}
+              currency={user.currency || 'INR'}
               onSuccess={handleRefreshAll}
               onCategoryCreated={handleCategoryCreated}
             />
